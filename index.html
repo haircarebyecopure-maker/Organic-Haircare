@@ -5,350 +5,423 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Suchi's Eco Pure | Organic Hair Oil</title>
     
-    <!-- 1. Tailwind CSS for Styling -->
+    <!-- ERROR HANDLING SCRIPT (Helps debug "Blank" screens) -->
+    <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            var string = msg.toLowerCase();
+            var substring = "script error";
+            if (string.indexOf(substring) > -1){
+                alert('Script Error: Please check your internet connection (CDNs blocked).');
+            } else {
+                alert('Internal Error: ' + msg + '\nLine: ' + lineNo);
+            }
+            return false;
+        };
+    </script>
+
+    <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 2. React & ReactDOM (Standard UMD) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- 3. Babel for translating JSX to Browser Code -->
+    <!-- 3. Babel (Compiles the code below) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- 4. Lucide Icons (UMD version for browser) -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/lucide-react/dist/umd/lucide-react.js"></script>
 
     <style>
         html { scroll-behavior: smooth; }
         .animate-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-up { animation: slideUp 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        /* Spinner for loading state */
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #166534; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #loading-screen { position: fixed; inset: 0; background: #fdfbf7; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
     </style>
 </head>
-<body class="bg-[#fdfbf7]">
+<body class="bg-[#fdfbf7] text-gray-800">
+
+    <!-- INITIAL LOADING SCREEN (Removed by React when loaded) -->
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <p class="mt-4 text-green-800 font-bold">Loading Suchi's Eco Pure...</p>
+        <p class="text-xs text-gray-500 mt-2">If this takes longer than 5 seconds, check your internet.</p>
+    </div>
+
     <div id="root"></div>
 
     <!-- MAIN APP SCRIPT -->
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        
-        // Lucide Icons are available globally via the LucideReact object in this setup
-        const { 
-            ShoppingCart, MessageCircle, X, Plus, Minus, ChevronRight, ChevronLeft, 
-            Star, MapPin, Leaf, Droplet, ShieldCheck, Phone, Menu, Check, Share2, Locate, Mail 
-        } = LucideReact;
+        // --- SAFEGUARDS ---
+        try {
+            const { useState, useEffect, useRef } = React;
 
-        // --- Data Constants ---
-        const PRODUCT = {
-            name: "SUCHI’S ECO PURE Infused Organic Hair Oil",
-            description: "Enriched with nature's finest ingredients, our organic hair oil is a blend of tradition and purity. Designed to combat hair fall, promote growth, and restore natural shine without harmful chemicals.",
-            tags: ["100% Natural", "Paraben Free", "Cruelty Free", "No Mineral Oil"],
-            ingredients: ["Amla", "Onion", "Curry Leaves", "Almond", "Hibiscus", "Sesame", "Fenugreek"],
-            benefits: [
-                { title: "Premature Greying", desc: "Helps prevent premature greying with nutrient-rich herbs.", icon: <Leaf className="w-5 h-5" /> },
-                { title: "Control Hair Fall", desc: "Strengthens roots to significantly reduce hair fall and dandruff.", icon: <ShieldCheck className="w-5 h-5" /> },
-                { title: "Boosts Growth", desc: "Promotes thicker, healthier hair growth naturally.", icon: <Check className="w-5 h-5" /> },
-                { title: "Deep Nourishment", desc: "Penetrates deep into the scalp to nourish from within.", icon: <Droplet className="w-5 h-5" /> },
-            ],
-            variants: [
-                { size: "100 ml", price: 250 },
-                { size: "250 ml", price: 450 },
-                { size: "500 ml", price: 750 },
-            ],
-            contact: "918317581308",
-            displayContact: "8317581308",
-            mapLink: "https://maps.app.goo.gl/6i3aF37GjFSBubTRA?g_st=ac"
-        };
+            // --- ICONS (Internal SVG Components) ---
+            const Icon = ({ children, className, size = 24 }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {children}
+                </svg>
+            );
 
-        const IMAGES = [
-            { id: 1, src: "1000262838.jpg", alt: "Main Bottle View" },
-            { id: 2, src: "1000262836.jpg", alt: "Ingredients Detail" },
-            { id: 3, src: "1000262837.jpg", alt: "Texture View" },
-        ];
-
-        const TESTIMONIALS = [
-            { name: "Priya S.", text: "I've tried so many oils, but this one is different. My hair feels so soft and the hair fall has actually stopped!", rating: 5 },
-            { name: "Rahul M.", text: "The smell is very earthy and natural. Loved the packaging and the results are visible in 3 weeks.", rating: 5 },
-        ];
-
-        const FAQS = [
-            { q: "Is this oil suitable for all hair types?", a: "Yes, our organic blend is designed to be lightweight and nourishing for all hair textures." },
-            { q: "How often should I apply it?", a: "For best results, apply 2-3 times a week. Massage into the scalp and leave it on for at least an hour." },
-            { q: "Is it safe for chemically treated hair?", a: "Absolutely. Since it is 100% natural, it is safe and actually helps repair damage." },
-        ];
-        
-        const FALLBACK_IMAGES = [
-            "https://images.unsplash.com/photo-1528740561666-dc24705f08a7?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1608248597279-f99d160bfbc8?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=800"
-        ];
-
-        // --- Main App Component ---
-        function App() {
-            const [selectedSize, setSelectedSize] = useState(PRODUCT.variants[1]); 
-            const [activeImage, setActiveImage] = useState(0);
-            const [cart, setCart] = useState([]);
-            const [isCartOpen, setIsCartOpen] = useState(false);
-            const [isChatOpen, setIsChatOpen] = useState(false);
-            const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-            
-            // Chat State
-            const [chatStep, setChatStep] = useState(0); 
-            const [chatHistory, setChatHistory] = useState([
-                { type: 'bot', text: "Namaste! Welcome to Suchi's Eco Pure. 🌿" }
-            ]);
-            const [chatUserForm, setChatUserForm] = useState({ name: '', phone: '', address: '' });
-
-            // Checkout Form State
-            const [checkoutForm, setCheckoutForm] = useState({ name: '', phone: '', email: '', address: '' });
-            const [loadingLocation, setLoadingLocation] = useState(false);
-
-            // SEO Effect
-            useEffect(() => {
-                document.title = "Suchi's Eco Pure | Organic Hair Oil";
-                // Inject SEO Meta tags dynamically
-                const metaDesc = document.createElement('meta');
-                metaDesc.name = "description";
-                metaDesc.content = "Buy Suchi's Eco Pure Organic Hair Oil. 100% natural, homemade ayurvedic remedy.";
-                document.head.appendChild(metaDesc);
-            }, []);
-
-            const addToCart = () => {
-                const newItem = { ...selectedSize, id: Date.now(), name: PRODUCT.name, image: IMAGES[0].src };
-                setCart([...cart, newItem]);
-                setIsCartOpen(true);
+            // Defining specific icons to ensure they exist before use
+            const Icons = {
+                ShoppingCart: (props) => <Icon {...props}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></Icon>,
+                MessageCircle: (props) => <Icon {...props}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></Icon>,
+                X: (props) => <Icon {...props}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Icon>,
+                Star: (props) => <Icon {...props}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></Icon>,
+                MapPin: (props) => <Icon {...props}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon>,
+                Leaf: (props) => <Icon {...props}><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></Icon>,
+                ShieldCheck: (props) => <Icon {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></Icon>,
+                Phone: (props) => <Icon {...props}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></Icon>,
+                Check: (props) => <Icon {...props}><polyline points="20 6 9 17 4 12"/></Icon>,
+                Droplet: (props) => <Icon {...props}><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></Icon>,
+                Locate: (props) => <Icon {...props}><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/></Icon>,
+                Truck: (props) => <Icon {...props}><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></Icon>
             };
 
-            const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
-            const cartTotal = cart.reduce((acc, item) => acc + item.price, 0);
-
-            // Location Logic
-            const getCurrentLocation = (formSetter, currentForm) => {
-                if (!navigator.geolocation) { alert("Geolocation not supported"); return; }
-                setLoadingLocation(true);
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        const link = `https://www.google.com/maps/search/?api=1&query=${pos.coords.latitude},${pos.coords.longitude}`;
-                        formSetter({ ...currentForm, address: `${currentForm.address ? currentForm.address + '\n' : ''}📍 My Location: ${link}` });
-                        setLoadingLocation(false);
-                    },
-                    (err) => { alert("Unable to get location."); setLoadingLocation(false); }
-                );
+            // --- DATA ---
+            const PRODUCT = {
+                name: "SUCHI’S ECO PURE Infused Organic Hair Oil",
+                description: "Enriched with nature's finest ingredients, our organic hair oil is a blend of tradition and purity. Designed to combat hair fall, promote growth, and restore natural shine without harmful chemicals.",
+                tags: ["100% Natural", "Paraben Free", "Cruelty Free", "No Mineral Oil"],
+                ingredients: ["Amla", "Onion", "Curry Leaves", "Almond", "Hibiscus", "Sesame", "Fenugreek"],
+                variants: [
+                    { size: "100 ml", price: 250 },
+                    { size: "250 ml", price: 450 },
+                    { size: "500 ml", price: 750 },
+                ],
+                contact: "918317581308",
+                displayContact: "8317581308",
+                mapLink: "https://maps.app.goo.gl/6i3aF37GjFSBubTRA?g_st=ac"
             };
 
-            const submitOrder = (e) => {
-                e.preventDefault();
-                const itemsList = cart.map(i => `- ${i.name} (${i.size}): ₹${i.price}`).join('\n');
-                const messageText = `*New Order Request* 🛒\n\n*Customer Details:*\nName: ${checkoutForm.name}\nPhone: ${checkoutForm.phone}\nEmail: ${checkoutForm.email || "N/A"}\nAddress: ${checkoutForm.address}\n\n*Order Summary:*\n${itemsList}\n\n*Total Amount: ₹${cartTotal}*`;
-                window.open(`https://wa.me/${PRODUCT.contact}?text=${encodeURIComponent(messageText)}`, '_blank');
-                setIsCheckoutModalOpen(false);
-                setCart([]);
-            };
-            
-            // Chat Logic
-            const startChat = () => {
-                if (chatStep === 0) { setChatStep(1); addBotMessage("Ready for a quick 3-question hair quiz?"); }
-                setIsChatOpen(true);
-            };
-            const addBotMessage = (text) => setChatHistory(prev => [...prev, { type: 'bot', text }]);
-            const addUserMessage = (text) => setChatHistory(prev => [...prev, { type: 'user', text }]);
-            
-            const handleChatOption = (option) => {
-                addUserMessage(option);
-                setTimeout(() => {
-                    if (chatStep === 1) { addBotMessage("What's your main hair concern?"); setChatStep(2); }
-                    else if (chatStep === 2) { addBotMessage("How often do you oil your hair?"); setChatStep(3); }
-                    else if (chatStep === 3) { addBotMessage("Our oil is perfect for that. Want to order?"); setChatStep(4); }
-                    else if (chatStep === 4) { 
-                        if (option.includes('Yes')) { addBotMessage("Please fill in your details."); setChatStep(5); }
-                        else { addBotMessage("Feel free to browse!"); setChatStep(0); }
-                    }
-                }, 500);
-            };
+            // Defined benefits AFTER Icons are initialized
+            const BENEFITS = [
+                { title: "Premature Greying", desc: "Helps prevent premature greying.", icon: "Leaf" },
+                { title: "Control Hair Fall", desc: "Strengthens roots to reduce hair fall.", icon: "ShieldCheck" },
+                { title: "Boosts Growth", desc: "Promotes thicker, healthier hair.", icon: "Check" },
+                { title: "Deep Nourishment", desc: "Penetrates deep into the scalp.", icon: "Droplet" },
+            ];
 
-            const handleChatFormSubmit = (e) => {
-                e.preventDefault();
-                const msg = `*Chatbot Inquiry*\nName: ${chatUserForm.name}\nPhone: ${chatUserForm.phone}\nAddress: ${chatUserForm.address}`;
-                window.open(`https://wa.me/${PRODUCT.contact}?text=${encodeURIComponent(msg)}`, '_blank');
-                setIsChatOpen(false);
-            };
+            const IMAGES = [
+                { id: 1, src: "1000262838.jpg", alt: "Main Bottle" },
+                { id: 2, src: "1000262836.jpg", alt: "Ingredients" },
+                { id: 3, src: "1000262837.jpg", alt: "Texture" },
+            ];
 
-            return (
-                <div className="font-sans text-gray-800 min-h-screen selection:bg-green-100 selection:text-green-900">
+            const FALLBACK_IMAGES = [
+                "https://images.unsplash.com/photo-1528740561666-dc24705f08a7?auto=format&fit=crop&q=80&w=800",
+                "https://images.unsplash.com/photo-1608248597279-f99d160bfbc8?auto=format&fit=crop&q=80&w=800",
+                "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=800"
+            ];
+
+            const FAQS = [
+                { q: "Is this oil suitable for all hair types?", a: "Yes, our organic blend is designed to be lightweight and nourishing for all hair textures, from straight to curly." },
+                { q: "How often should I apply it?", a: "For best results, apply 2-3 times a week. Massage into the scalp and leave it on for at least an hour before washing." },
+            ];
+
+            const TESTIMONIALS = [
+                { name: "Priya S.", text: "I've tried so many oils, but this one is different. My hair feels so soft!", rating: 5 }
+            ];
+
+            // --- MAIN COMPONENT ---
+            function App() {
+                const [selectedSize, setSelectedSize] = useState(PRODUCT.variants[1]); 
+                const [activeImage, setActiveImage] = useState(0);
+                const [cart, setCart] = useState([]);
+                const [isCartOpen, setIsCartOpen] = useState(false);
+                const [isChatOpen, setIsChatOpen] = useState(false);
+                const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+                const [checkoutForm, setCheckoutForm] = useState({ name: '', phone: '', email: '', address: '' });
+                const [loadingLocation, setLoadingLocation] = useState(false);
+
+                // Chat State
+                const [chatStep, setChatStep] = useState(0);
+                const [chatHistory, setChatHistory] = useState([{ type: 'bot', text: "Namaste! Welcome to Suchi's Eco Pure. 🌿" }]);
+                const [chatUserForm, setChatUserForm] = useState({ name: '', phone: '', address: '' });
+
+                // Remove Loading Screen on Mount
+                useEffect(() => {
+                    const loader = document.getElementById('loading-screen');
+                    if (loader) loader.style.display = 'none';
                     
-                    {/* NAV */}
-                    <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md shadow-sm z-40">
-                        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                    // Meta tags
+                    document.title = "Suchi's Eco Pure | Organic Hair Oil";
+                }, []);
+
+                // Cart Logic
+                const addToCart = () => {
+                    setCart([...cart, { ...selectedSize, id: Date.now(), name: PRODUCT.name, image: IMAGES[0].src }]);
+                    setIsCartOpen(true);
+                };
+                const removeFromCart = (id) => setCart(cart.filter(i => i.id !== id));
+                const cartTotal = cart.reduce((acc, item) => acc + item.price, 0);
+
+                // Location Logic
+                const getCurrentLocation = () => {
+                    if (!navigator.geolocation) { alert("Geolocation not supported."); return; }
+                    setLoadingLocation(true);
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            const link = `https://www.google.com/maps/search/?api=1&query=${pos.coords.latitude},${pos.coords.longitude}`;
+                            setCheckoutForm(prev => ({ ...prev, address: `${prev.address ? prev.address + '\n' : ''}📍 My Location: ${link}` }));
+                            setLoadingLocation(false);
+                        },
+                        (err) => { alert("Unable to get location."); setLoadingLocation(false); }
+                    );
+                };
+
+                // Checkout Logic
+                const submitOrder = (e) => {
+                    e.preventDefault();
+                    const items = cart.map(i => `- ${i.name} (${i.size}): ₹${i.price}`).join('\n');
+                    const msg = `*New Order* 🛒\nName: ${checkoutForm.name}\nPhone: ${checkoutForm.phone}\nAddr: ${checkoutForm.address}\n\n*Items:*\n${items}\n\n*Total: ₹${cartTotal}*`;
+                    window.open(`https://wa.me/${PRODUCT.contact}?text=${encodeURIComponent(msg)}`, '_blank');
+                    setIsCheckoutModalOpen(false);
+                    setCart([]);
+                    setCheckoutForm({ name: '', phone: '', email: '', address: '' });
+                };
+
+                // Chat Logic
+                const handleChatOption = (opt) => {
+                    setChatHistory(prev => [...prev, { type: 'user', text: opt }]);
+                    setTimeout(() => {
+                        if (chatStep === 0) { setChatStep(1); setChatHistory(prev => [...prev, { type: 'bot', text: "What's your main hair concern?" }]); }
+                        else if (chatStep === 1) { setChatStep(2); setChatHistory(prev => [...prev, { type: 'bot', text: "How often do you oil your hair?" }]); }
+                        else if (chatStep === 2) { setChatStep(3); setChatHistory(prev => [...prev, { type: 'bot', text: "Would you like to order now?" }]); }
+                        else if (chatStep === 3) {
+                            if (opt.includes("Yes")) { setChatStep(4); setChatHistory(prev => [...prev, { type: 'bot', text: "Please enter details below." }]); }
+                            else { setChatStep(0); setChatHistory(prev => [...prev, { type: 'bot', text: "No problem! Browse away." }]); }
+                        }
+                    }, 500);
+                };
+                
+                const submitChatForm = (e) => {
+                    e.preventDefault();
+                    const msg = `*Chat Inquiry*\nName: ${chatUserForm.name}\nPhone: ${chatUserForm.phone}\nAddr: ${chatUserForm.address}`;
+                    window.open(`https://wa.me/${PRODUCT.contact}?text=${encodeURIComponent(msg)}`, '_blank');
+                    setIsChatOpen(false);
+                };
+
+                const handleImageError = (i, e) => e.target.src = FALLBACK_IMAGES[i] || FALLBACK_IMAGES[0];
+
+                return (
+                    <div className="font-sans text-gray-800 min-h-screen">
+                        {/* NAV */}
+                        <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md shadow-sm z-40 h-20 flex items-center px-4 md:px-8 justify-between">
                             <div className="flex items-center gap-2">
-                                <div className="bg-green-800 text-white p-2 rounded-full"><Leaf size={20} /></div>
+                                <div className="bg-green-800 text-white p-2 rounded-full"><Icons.Leaf size={20} /></div>
                                 <div><h1 className="text-xl font-bold text-green-900 leading-none">SUCHI’S</h1><span className="text-xs text-green-700 uppercase">Eco Pure</span></div>
                             </div>
-                            <button onClick={() => setIsCartOpen(true)} className="relative p-2 hover:bg-green-50 rounded-full">
-                                <ShoppingCart className="w-6 h-6 text-green-900" />
-                                {cart.length > 0 && <span className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pulse">{cart.length}</span>}
-                            </button>
-                        </div>
-                    </nav>
-
-                    {/* HERO */}
-                    <section className="pt-28 pb-10 px-4 max-w-7xl mx-auto grid md:grid-cols-2 gap-10">
-                        <div className="space-y-4">
-                            <div className="aspect-square rounded-3xl overflow-hidden bg-gray-100 shadow-xl relative">
-                                <img src={IMAGES[activeImage].src} onError={(e) => e.target.src = FALLBACK_IMAGES[activeImage]} className="w-full h-full object-cover" />
-                                <div className="absolute top-4 left-4 bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-green-800">FRESHLY PREPARED</div>
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setIsCartOpen(true)} className="relative p-2 hover:bg-green-50 rounded-full">
+                                    <Icons.ShoppingCart className="w-6 h-6 text-green-900" />
+                                    {cart.length > 0 && <span className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pulse">{cart.length}</span>}
+                                </button>
                             </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                {IMAGES.map((img, i) => (
-                                    <button key={i} onClick={() => setActiveImage(i)} className={`rounded-xl overflow-hidden aspect-square border-2 ${activeImage === i ? 'border-green-800' : 'border-transparent'}`}>
-                                        <img src={img.src} onError={(e) => e.target.src = FALLBACK_IMAGES[i]} className="w-full h-full object-cover" />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        </nav>
 
-                        <div className="flex flex-col justify-center">
-                            <h2 className="text-4xl font-serif font-bold text-gray-900 mb-4">{PRODUCT.name}</h2>
-                            <p className="text-lg text-gray-600 mb-6">{PRODUCT.description}</p>
-                            
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
-                                <div className="flex justify-between mb-6">
-                                    <div className="flex gap-2">
-                                        {PRODUCT.variants.map((v) => (
-                                            <button key={v.size} onClick={() => setSelectedSize(v)} className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedSize.size === v.size ? 'bg-green-800 text-white' : 'bg-gray-100'}`}>{v.size}</button>
-                                        ))}
+                        {/* HERO */}
+                        <section className="pt-32 pb-16 px-4 max-w-7xl mx-auto grid md:grid-cols-2 gap-12">
+                            <div className="space-y-4">
+                                <div className="aspect-square rounded-3xl overflow-hidden bg-gray-100 relative">
+                                    <img src={IMAGES[activeImage].src} onError={(e) => handleImageError(activeImage, e)} className="w-full h-full object-cover" />
+                                    <div className="absolute top-4 left-4 bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-green-800">FRESHLY PREPARED</div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    {IMAGES.map((img, i) => (
+                                        <button key={i} onClick={() => setActiveImage(i)} className={`rounded-xl overflow-hidden aspect-square border-2 ${activeImage === i ? 'border-green-800' : 'border-transparent'}`}>
+                                            <img src={img.src} onError={(e) => handleImageError(i, e)} className="w-full h-full object-cover" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex flex-col justify-center">
+                                <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-4">{PRODUCT.name}</h2>
+                                <p className="text-lg text-gray-600 mb-6">{PRODUCT.description}</p>
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
+                                    <div className="flex justify-between mb-6">
+                                        <div className="flex gap-2">
+                                            {PRODUCT.variants.map((v) => (
+                                                <button key={v.size} onClick={() => setSelectedSize(v)} className={`px-4 py-2 rounded-lg text-sm font-medium ${selectedSize.size === v.size ? 'bg-green-800 text-white' : 'bg-gray-100'}`}>{v.size}</button>
+                                            ))}
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-3xl font-bold text-green-900">₹{selectedSize.price}</p>
+                                        </div>
                                     </div>
-                                    <p className="text-3xl font-bold text-green-900">₹{selectedSize.price}</p>
+                                    <button onClick={addToCart} className="w-full bg-green-900 text-white py-4 rounded-xl font-bold text-lg flex justify-center gap-2 hover:bg-green-800"><Icons.ShoppingCart /> Add to Cart</button>
                                 </div>
-                                <button onClick={addToCart} className="w-full bg-green-900 text-white py-4 rounded-xl font-bold text-lg flex justify-center gap-2 hover:bg-green-800"><ShoppingCart /> Add to Cart</button>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* BENEFITS */}
-                    <section className="py-16 px-4 max-w-7xl mx-auto">
-                        <h3 className="text-3xl font-serif font-bold text-center mb-10">Enriched with Nature</h3>
-                        <div className="grid md:grid-cols-4 gap-6">
-                            {PRODUCT.benefits.map((b, i) => (
-                                <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                                    <div className="text-green-800 mb-4">{b.icon}</div>
-                                    <h4 className="font-bold mb-2">{b.title}</h4>
-                                    <p className="text-sm text-gray-600">{b.desc}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* MAP & INFO */}
-                    <section className="py-16 px-4 max-w-7xl mx-auto grid md:grid-cols-2 gap-10">
-                        <div>
-                            <h3 className="text-2xl font-bold mb-6">Visit Us</h3>
-                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 h-80 relative overflow-hidden group">
-                                <iframe className="w-full h-full rounded-xl" src="https://maps.google.com/maps?q=Suchi's+Eco+Pure&t=&z=13&ie=UTF8&iwloc=&output=embed" allowFullScreen></iframe>
-                                <div className="absolute bottom-6 right-6">
-                                    <a href={PRODUCT.mapLink} target="_blank" className="bg-white text-gray-900 px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm hover:scale-105 transition-transform"><MapPin size={16} className="text-red-500" /> Open Map</a>
+                                <div className="flex items-center gap-3 text-sm text-gray-500 bg-green-50/50 p-4 rounded-lg border border-green-100">
+                                    <Icons.Truck className="text-green-700" />
+                                    <p>“Pure roots. Pure growth.” — Nature’s care for stronger hair delivered to your doorstep.</p>
                                 </div>
                             </div>
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-bold mb-6">Contact</h3>
-                            <div className="flex items-center gap-4 bg-green-50 p-6 rounded-2xl">
-                                <div className="bg-green-200 p-3 rounded-full text-green-900"><Phone /></div>
-                                <div>
-                                    <p className="font-bold">Order & Support</p>
-                                    <a href={`tel:+${PRODUCT.contact}`} className="text-xl text-green-800 font-bold block hover:underline">+91 {PRODUCT.displayContact}</a>
+                        </section>
+
+                        {/* BENEFITS */}
+                        <section className="py-20 px-4 max-w-7xl mx-auto">
+                            <h3 className="text-3xl font-serif font-bold text-center mb-12">Enriched with Nature</h3>
+                            <div className="grid md:grid-cols-4 gap-6">
+                                {BENEFITS.map((b, i) => {
+                                    const IconComp = Icons[b.icon] || Icons.Leaf;
+                                    return (
+                                        <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                            <div className="text-green-800 mb-4"><IconComp size={32} /></div>
+                                            <h4 className="font-bold mb-2">{b.title}</h4>
+                                            <p className="text-sm text-gray-600">{b.desc}</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="mt-10 flex flex-wrap justify-center gap-2">
+                                {PRODUCT.ingredients.map(ing => <span key={ing} className="px-4 py-2 rounded-full border bg-white text-sm font-medium">{ing}</span>)}
+                            </div>
+                        </section>
+
+                        {/* TESTIMONIALS */}
+                        <section className="py-20 bg-[#1a472a] text-white text-center px-4">
+                            <div className="max-w-4xl mx-auto">
+                                <h3 className="text-3xl font-serif font-bold mb-8">Stories of Transformation</h3>
+                                <div className="bg-white/10 backdrop-blur rounded-3xl p-8 border border-white/10">
+                                    <div className="flex justify-center mb-4 text-amber-400">
+                                        {[...Array(5)].map((_, i) => <Icons.Star key={i} fill="currentColor" size={20} />)}
+                                    </div>
+                                    <p className="text-xl italic mb-4">"{TESTIMONIALS[0].text}"</p>
+                                    <p className="font-bold">{TESTIMONIALS[0].name}</p>
                                 </div>
                             </div>
-                        </div>
-                    </section>
-                    
-                    {/* FOOTER */}
-                    <footer className="bg-gray-900 text-white py-10 text-center">
-                        <p className="text-gray-400">Nature’s care for stronger hair.</p>
-                        <p className="text-xs text-gray-600 mt-2">&copy; {new Date().getFullYear()} Suchi's Eco Pure</p>
-                    </footer>
+                        </section>
 
-                    {/* CART MODAL */}
-                    {isCartOpen && (
-                        <div className="fixed inset-0 z-50 flex justify-end">
-                            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
-                            <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col p-6 animate-in">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-xl font-bold">Cart ({cart.length})</h2>
-                                    <button onClick={() => setIsCartOpen(false)}><X /></button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto space-y-4">
-                                    {cart.map(item => (
-                                        <div key={item.id} className="flex gap-4 border-b pb-4">
-                                            <img src={item.image} onError={(e) => e.target.src = FALLBACK_IMAGES[0]} className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-sm">{item.name}</h4>
-                                                <div className="flex justify-between mt-1"><span className="text-xs text-gray-500">{item.size}</span><span className="font-bold">₹{item.price}</span></div>
-                                                <button onClick={() => removeFromCart(item.id)} className="text-red-500 text-xs mt-1">Remove</button>
-                                            </div>
+                        {/* MAP & FAQ */}
+                        <section className="py-20 px-4 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16">
+                            <div>
+                                <h3 className="text-2xl font-bold mb-6">FAQ</h3>
+                                <div className="space-y-4">
+                                    {FAQS.map((f, i) => (
+                                        <div key={i} className="bg-white p-5 rounded-xl border">
+                                            <h4 className="font-bold mb-2">{f.q}</h4>
+                                            <p className="text-gray-600">{f.a}</p>
                                         </div>
                                     ))}
                                 </div>
-                                {cart.length > 0 && <button onClick={() => { setIsCartOpen(false); setIsCheckoutModalOpen(true); }} className="w-full bg-green-800 text-white py-3 rounded-xl font-bold mt-4">Proceed to Buy (₹{cartTotal})</button>}
                             </div>
-                        </div>
-                    )}
-
-                    {/* CHECKOUT MODAL */}
-                    {isCheckoutModalOpen && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsCheckoutModalOpen(false)}></div>
-                            <div className="relative w-full max-w-lg bg-white rounded-2xl p-6 shadow-2xl animate-in">
-                                <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                    <h3 className="font-bold text-lg">Checkout Details</h3>
-                                    <button onClick={() => setIsCheckoutModalOpen(false)}><X /></button>
-                                </div>
-                                <form onSubmit={submitOrder} className="space-y-3">
-                                    <input required placeholder="Full Name" className="w-full border rounded-lg p-3" value={checkoutForm.name} onChange={e => setCheckoutForm({...checkoutForm, name: e.target.value})} />
-                                    <input required placeholder="Phone Number" type="tel" className="w-full border rounded-lg p-3" value={checkoutForm.phone} onChange={e => setCheckoutForm({...checkoutForm, phone: e.target.value})} />
-                                    <input placeholder="Email (Optional)" type="email" className="w-full border rounded-lg p-3" value={checkoutForm.email} onChange={e => setCheckoutForm({...checkoutForm, email: e.target.value})} />
-                                    <div className="relative">
-                                        <textarea required placeholder="Delivery Address" rows="3" className="w-full border rounded-lg p-3" value={checkoutForm.address} onChange={e => setCheckoutForm({...checkoutForm, address: e.target.value})}></textarea>
-                                        <button type="button" onClick={() => getCurrentLocation(setCheckoutForm, checkoutForm)} className="absolute bottom-2 right-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded flex gap-1">{loadingLocation ? "..." : <Locate size={12}/>} My Location</button>
+                            <div>
+                                <h3 className="text-2xl font-bold mb-6">Visit Us</h3>
+                                <div className="bg-white p-4 rounded-2xl shadow-sm border h-80 relative overflow-hidden">
+                                    <iframe className="w-full h-full rounded-xl" src="https://maps.google.com/maps?q=Suchi's+Eco+Pure&t=&z=13&ie=UTF8&iwloc=&output=embed" allowFullScreen></iframe>
+                                    <div className="absolute bottom-4 right-4">
+                                        <a href={PRODUCT.mapLink} target="_blank" className="bg-white px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm"><Icons.MapPin size={16} className="text-red-500" /> Open Map</a>
                                     </div>
-                                    <button type="submit" className="w-full bg-green-800 text-white py-3 rounded-xl font-bold">Confirm & WhatsApp</button>
-                                </form>
+                                </div>
+                                <div className="mt-4 flex items-center gap-4 bg-green-50 p-4 rounded-xl">
+                                    <div className="bg-green-200 p-2 rounded-full text-green-900"><Icons.Phone /></div>
+                                    <div>
+                                        <p className="font-bold">Order Support</p>
+                                        <a href={`tel:+91${PRODUCT.displayContact}`} className="text-lg font-bold hover:text-green-800">+91 {PRODUCT.displayContact}</a>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        </section>
 
-                    {/* CHAT FAB */}
-                    <div className="fixed bottom-6 right-6 z-40">
-                         {isChatOpen && (
-                            <div className="mb-4 w-80 bg-white rounded-2xl shadow-2xl overflow-hidden border">
-                                <div className="bg-green-800 p-3 text-white flex justify-between"><span className="text-sm font-bold">Assistant</span><button onClick={() => setIsChatOpen(false)}><X size={16}/></button></div>
-                                <div className="h-64 overflow-y-auto p-3 bg-gray-50 space-y-2">
-                                    {chatHistory.map((m, i) => <div key={i} className={`p-2 rounded-lg text-sm max-w-[85%] ${m.type === 'bot' ? 'bg-white mr-auto' : 'bg-green-100 ml-auto'}`}>{m.text}</div>)}
-                                    {/* Chat Controls logic rendered here based on chatStep... (simplified for brevity) */}
-                                    {chatStep === 1 && <button onClick={() => handleChatOption("Start Quiz")} className="bg-green-800 text-white text-xs px-3 py-1 rounded-full">Start Quiz</button>}
-                                    {chatStep === 2 && ["Hair Fall", "Dryness"].map(o => <button key={o} onClick={() => handleChatOption(o)} className="bg-white border text-xs px-2 py-1 rounded-full mr-1">{o}</button>)}
-                                    {chatStep === 3 && ["Daily", "Weekly"].map(o => <button key={o} onClick={() => handleChatOption(o)} className="bg-white border text-xs px-2 py-1 rounded-full mr-1">{o}</button>)}
-                                    {chatStep === 4 && <button onClick={() => handleChatOption("Yes, Order")} className="bg-green-800 text-white text-xs px-3 py-1 rounded-full">Yes, Order</button>}
-                                    {chatStep === 5 && (
-                                        <form onSubmit={handleChatFormSubmit} className="space-y-2 mt-2">
-                                            <input required placeholder="Name" className="w-full border p-1 text-xs rounded" value={chatUserForm.name} onChange={e => setChatUserForm({...chatUserForm, name: e.target.value})} />
-                                            <input required placeholder="Phone" className="w-full border p-1 text-xs rounded" value={chatUserForm.phone} onChange={e => setChatUserForm({...chatUserForm, phone: e.target.value})} />
-                                            <textarea required placeholder="Address" className="w-full border p-1 text-xs rounded" value={chatUserForm.address} onChange={e => setChatUserForm({...chatUserForm, address: e.target.value})} />
-                                            <button className="w-full bg-green-800 text-white text-xs py-1 rounded">Submit</button>
-                                        </form>
-                                    )}
+                        {/* FOOTER */}
+                        <footer className="bg-gray-900 text-white py-10 text-center">
+                            <p className="mb-2">Nature’s care for stronger hair.</p>
+                            <p className="text-xs text-gray-500">&copy; 2024 Suchi's Eco Pure</p>
+                        </footer>
+
+                        {/* MODALS */}
+                        {isCartOpen && (
+                            <div className="fixed inset-0 z-50 flex justify-end">
+                                <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
+                                <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col p-6 animate-in slide-up">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-xl font-bold">Cart ({cart.length})</h2>
+                                        <button onClick={() => setIsCartOpen(false)}><Icons.X /></button>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto space-y-4">
+                                        {cart.length === 0 ? <p className="text-gray-400 text-center mt-10">Cart is empty</p> : 
+                                            cart.map(item => (
+                                                <div key={item.id} className="flex gap-4 border-b pb-4">
+                                                    <img src={item.image} onError={(e) => handleImageError(0, e)} className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
+                                                    <div className="flex-1">
+                                                        <h4 className="font-bold text-sm">{item.name}</h4>
+                                                        <div className="flex justify-between mt-1"><span className="text-xs text-gray-500">{item.size}</span><span className="font-bold">₹{item.price}</span></div>
+                                                        <button onClick={() => removeFromCart(item.id)} className="text-red-500 text-xs mt-1">Remove</button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                    {cart.length > 0 && <button onClick={() => { setIsCartOpen(false); setIsCheckoutModalOpen(true); }} className="w-full bg-green-800 text-white py-3 rounded-xl font-bold mt-4">Proceed (₹{cartTotal})</button>}
                                 </div>
                             </div>
                         )}
-                        <button onClick={startChat} className="bg-green-600 text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform"><MessageCircle size={24} /></button>
+
+                        {isCheckoutModalOpen && (
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsCheckoutModalOpen(false)}></div>
+                                <div className="relative w-full max-w-lg bg-white rounded-2xl p-6 shadow-2xl animate-in slide-up">
+                                    <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                        <h3 className="font-bold text-lg">Checkout</h3>
+                                        <button onClick={() => setIsCheckoutModalOpen(false)}><Icons.X /></button>
+                                    </div>
+                                    <form onSubmit={submitOrder} className="space-y-3">
+                                        <input required placeholder="Full Name" className="w-full border rounded-lg p-3" value={checkoutForm.name} onChange={e => setCheckoutForm({...checkoutForm, name: e.target.value})} />
+                                        <input required placeholder="Phone Number" type="tel" className="w-full border rounded-lg p-3" value={checkoutForm.phone} onChange={e => setCheckoutForm({...checkoutForm, phone: e.target.value})} />
+                                        <input placeholder="Email (Optional)" type="email" className="w-full border rounded-lg p-3" value={checkoutForm.email} onChange={e => setCheckoutForm({...checkoutForm, email: e.target.value})} />
+                                        <div className="relative">
+                                            <textarea required placeholder="Address" rows="3" className="w-full border rounded-lg p-3" value={checkoutForm.address} onChange={e => setCheckoutForm({...checkoutForm, address: e.target.value})}></textarea>
+                                            <button type="button" onClick={getCurrentLocation} className="absolute bottom-2 right-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded flex gap-1">{loadingLocation ? "..." : <Icons.Locate size={12}/>} My Location</button>
+                                        </div>
+                                        <button type="submit" className="w-full bg-green-800 text-white py-3 rounded-xl font-bold">WhatsApp Order</button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* CHAT FAB */}
+                        <div className="fixed bottom-6 right-6 z-40">
+                             {isChatOpen && (
+                                <div className="mb-4 w-80 bg-white rounded-2xl shadow-2xl overflow-hidden border animate-in slide-up">
+                                    <div className="bg-green-800 p-3 text-white flex justify-between"><span className="text-sm font-bold">Assistant</span><button onClick={() => setIsChatOpen(false)}><Icons.X size={16}/></button></div>
+                                    <div className="h-64 overflow-y-auto p-3 bg-gray-50 space-y-2">
+                                        {chatHistory.map((m, i) => <div key={i} className={`p-2 rounded-lg text-sm max-w-[85%] ${m.type === 'bot' ? 'bg-white mr-auto' : 'bg-green-100 ml-auto'}`}>{m.text}</div>)}
+                                        
+                                        {chatStep === 0 && <button onClick={() => { setChatStep(1); handleChatOption("Start Quiz"); }} className="bg-green-800 text-white text-xs px-3 py-1 rounded-full">Start Quiz</button>}
+                                        {chatStep === 1 && ["Hair Fall", "Dryness"].map(o => <button key={o} onClick={() => handleChatOption(o)} className="bg-white border text-xs px-2 py-1 rounded-full mr-1">{o}</button>)}
+                                        {chatStep === 2 && ["Daily", "Weekly"].map(o => <button key={o} onClick={() => handleChatOption(o)} className="bg-white border text-xs px-2 py-1 rounded-full mr-1">{o}</button>)}
+                                        {chatStep === 3 && <button onClick={() => handleChatOption("Yes, Order")} className="bg-green-800 text-white text-xs px-3 py-1 rounded-full">Yes, Order</button>}
+                                        {chatStep === 4 && (
+                                            <form onSubmit={submitChatForm} className="space-y-2 mt-2">
+                                                <input required placeholder="Name" className="w-full border p-1 text-xs rounded" value={chatUserForm.name} onChange={e => setChatUserForm({...chatUserForm, name: e.target.value})} />
+                                                <input required placeholder="Phone" className="w-full border p-1 text-xs rounded" value={chatUserForm.phone} onChange={e => setChatUserForm({...chatUserForm, phone: e.target.value})} />
+                                                <textarea required placeholder="Address" className="w-full border p-1 text-xs rounded" value={chatUserForm.address} onChange={e => setChatUserForm({...chatUserForm, address: e.target.value})} />
+                                                <button className="w-full bg-green-800 text-white text-xs py-1 rounded">Submit</button>
+                                            </form>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            <button onClick={() => setIsChatOpen(!isChatOpen)} className="bg-green-600 text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform"><Icons.MessageCircle size={24} /></button>
+                        </div>
+
                     </div>
+                );
+            }
 
-                </div>
-            );
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+            
+        } catch (err) {
+            console.error(err);
+            alert("React Render Error: " + err.message);
         }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
     </script>
 </body>
 </html>
+
 
